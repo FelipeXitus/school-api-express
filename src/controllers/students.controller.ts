@@ -10,8 +10,19 @@ export class StudentsController {
       const dto = validateCreateStudent(req.body);
       const student = await studentService.create(dto);
       return res.status(201).json(student);
-    } catch (err: any) {
-      return res.status(400).json({ message: err.message });
+    } catch (error: any) {
+      // Email duplicado → 409 Conflict
+      if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+        throw { status: 409, message: 'E-mail já está em uso' };
+      }
+  
+      // Erro de validação ou outros erros conhecidos
+      if (error.message) {
+        throw { status: 400, message: error.message };
+      }
+  
+      // Erro inesperado
+      throw { status: 500, message: 'Erro interno ao criar estudante' };
     }
   }
 
@@ -23,7 +34,7 @@ export class StudentsController {
   async findById(req: Request, res: Response) {
     const id = Number(req.params.id);
     const student = await studentService.findById(id);
-    if (!student) return res.status(404).json({ message: 'Estudante não encontrado' });
+    if (!student) throw { status: 404, message: 'Estudante não encontrado' };
     return res.json(student);
   }
 
@@ -34,13 +45,22 @@ export class StudentsController {
       const student = await studentService.update(id, dto);
       return res.json(student);
     } catch (err: any) {
-      return res.status(400).json({ message: err.message });
+      throw { status: 400, message: err.message };
     }
   }
 
   async delete(req: Request, res: Response) {
     const id = Number(req.params.id);
-    await studentService.delete(id);
-    return res.status(204).send();
+  
+    try {
+      await studentService.delete(id);
+      return res.status(204).send();
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw { status: 404, message: 'Estudante não encontrado' };
+      }
+  
+      throw { status: 500, message: 'Erro interno ao deletar estudante' };
+    }
   }
 }

@@ -11,7 +11,7 @@ export class CoursesController {
       const course = await courseService.create(dto);
       return res.status(201).json(course);
     } catch (err: any) {
-      return res.status(400).json({ message: err.message });
+      throw { status: 400, message: err.message };
     }
   }
 
@@ -23,7 +23,7 @@ export class CoursesController {
   async findById(req: Request, res: Response) {
     const id = Number(req.params.id);
     const course = await courseService.findById(id);
-    if (!course) return res.status(404).json({ message: 'Curso não encontrado' });
+    if (!course) throw { status: 404, message: 'Curso não encontrado' };
     return res.json(course);
   }
 
@@ -34,13 +34,22 @@ export class CoursesController {
       const course = await courseService.update(id, dto);
       return res.json(course);
     } catch (err: any) {
-      return res.status(400).json({ message: err.message });
+      throw { status: 400, message: err.message };
     }
   }
 
   async delete(req: Request, res: Response) {
     const id = Number(req.params.id);
-    await courseService.delete(id);
-    return res.status(204).send();
+
+    try {
+      await courseService.delete(id);
+      return res.status(204).send();
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw { status: 404, message: 'Curso não encontrado' };
+      }
+  
+      throw { status: 500, message: 'Erro interno ao deletar curso' };
+    }
   }
 }
