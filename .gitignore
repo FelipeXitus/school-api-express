@@ -1,0 +1,6 @@
+documentos/
+node_modules
+dist
+.env
+coverage
+.prisma
